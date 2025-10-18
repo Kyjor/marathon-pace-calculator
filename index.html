@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marathon Pace Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-value {
+            font-size: 3em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Input Section */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .format-hint {
+            color: #666;
+            font-size: 0.9em;
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        .clear-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+
+        .clear-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Mile Groups */
+        .mile-groups {
+            display: grid;
+            gap: 25px;
+        }
+
+        .mile-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .mile-group-title {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .mile-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        /* Pace Input Component */
+        .pace-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.3s;
+        }
+
+        .pace-input-wrapper:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .pace-input-wrapper.invalid {
+            border-color: #e74c3c;
+            background-color: #ffe6e6;
+        }
+
+        .time-segment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .spinner-button {
+            background: #667eea;
+            border: none;
+            color: white;
+            width: 100%;
+            height: 22px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .spinner-button:hover {
+            background: #5568d3;
+        }
+
+        .spinner-button:active {
+            background: #4451b8;
+        }
+
+        .spinner-button.up {
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 2px;
+        }
+
+        .spinner-button.down {
+            border-radius: 0 0 4px 4px;
+            margin-top: 2px;
+        }
+
+        .time-input {
+            width: 45px;
+            height: 45px;
+            text-align: center;
+            border: none;
+            font-size: 1.3em;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            background: transparent;
+            color: #333;
+            outline: none;
+        }
+
+        .time-input::-webkit-inner-spin-button,
+        .time-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .time-separator {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 0 4px;
+        }
+
+        .time-label {
+            font-size: 0.65em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.75em;
+            margin-top: 5px;
+            min-height: 18px;
+        }
+
+        /* Final segment styling */
+        .final-segment {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .final-segment .mile-group-title {
+            color: #ff6b6b;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .summary-value {
+                font-size: 2.2em;
+            }
+
+            .mile-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .time-input {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2em;
+            }
+
+            .quick-fill-container {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+
+            .quick-fill-input-group {
+                width: 100%;
+            }
+        }
+
+        /* Animation for summary updates */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        .summary-value.updated {
+            animation: pulse 0.3s ease-in-out;
+        }
+
+        /* Quick fill section */
+        .quick-fill-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-fill-label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .quick-fill-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.3s;
+        }
+
+        .quick-fill-input-group:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .quick-fill-time-input {
+            width: 50px;
+            height: 40px;
+            text-align: center;
+            border: none;
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            background: transparent;
+            color: #333;
+            outline: none;
+        }
+
+        .quick-fill-time-input::-webkit-inner-spin-button,
+        .quick-fill-time-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .quick-fill-separator {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .quick-fill-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .quick-fill-btn:hover {
+            background: #5568d3;
+        }
+
+        .quick-fill-btn:active {
+            background: #4451b8;
+        }
+
+        .quick-fill-error {
+            color: #e74c3c;
+            font-size: 0.85em;
+            flex-basis: 100%;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏃 Marathon Pace Calculator</h1>
+        <p class="subtitle">Track your marathon performance mile by mile</p>
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Total Marathon Time</div>
+                    <div class="summary-value" id="totalTime">0:00:00</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Average Pace Per Mile</div>
+                    <div class="summary-value" id="avgPace">0:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="format-hint">
+                ⚡ <strong>Quick Entry:</strong> Use spinner buttons or type directly in the pace fields
+            </div>
+            <button class="clear-btn" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <!-- Quick Fill Section -->
+        <div class="quick-fill-container">
+            <div class="quick-fill-label">⚡ Fill All Miles:</div>
+            <div class="quick-fill-input-group">
+                <input type="number" 
+                       id="quickFillMin" 
+                       class="quick-fill-time-input" 
+                       placeholder="8"
+                       min="3"
+                       max="20"
+                       value="8">
+                <span class="quick-fill-separator">:</span>
+                <input type="number" 
+                       id="quickFillSec" 
+                       class="quick-fill-time-input" 
+                       placeholder="00"
+                       min="0"
+                       max="59"
+                       value="0">
+            </div>
+            <button class="quick-fill-btn" onclick="applyQuickFill()">
+                Apply to All Miles
+            </button>
+            <div class="quick-fill-error" id="quickFillError"></div>
+        </div>
+
+        <!-- Mile Input Groups -->
+        <div class="mile-groups" id="mileGroups"></div>
+    </div>
+
+    <script>
+        // Constants
+        const TOTAL_MILES = 26;
+        const FINAL_SEGMENT = 0.2;
+        const TOTAL_DISTANCE = TOTAL_MILES + FINAL_SEGMENT;
+        const MIN_PACE_SECONDS = 180; // 3:00 min/mile
+        const MAX_PACE_SECONDS = 1200; // 20:00 min/mile
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            createMileInputs();
+            calculateTotals();
+            setupQuickFillInputs();
+        });
+
+        /**
