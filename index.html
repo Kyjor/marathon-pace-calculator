@@ -472,3 +472,427 @@
         });
 
         /**
+         * Sets up event listeners for quick fill inputs
+         */
+        function setupQuickFillInputs() {
+            const minInput = document.getElementById('quickFillMin');
+            const secInput = document.getElementById('quickFillSec');
+
+            // Handle Enter key press
+            minInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    applyQuickFill();
+                }
+            });
+
+            secInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    applyQuickFill();
+                }
+            });
+
+            // Constrain values on input
+            minInput.addEventListener('input', () => {
+                if (minInput.value !== '') {
+                    let mins = parseInt(minInput.value);
+                    if (mins < 0) minInput.value = 0;
+                    if (mins > 20) minInput.value = 20;
+                }
+            });
+
+            secInput.addEventListener('input', () => {
+                if (secInput.value !== '') {
+                    let secs = parseInt(secInput.value);
+                    if (secs < 0) secInput.value = 0;
+                    if (secs > 59) secInput.value = 59;
+                }
+            });
+        }
+
+        /**
+         * Applies the quick fill pace to all mile inputs
+         */
+        function applyQuickFill() {
+            const minInput = document.getElementById('quickFillMin');
+            const secInput = document.getElementById('quickFillSec');
+            const errorDiv = document.getElementById('quickFillError');
+
+            const minutes = parseInt(minInput.value) || 0;
+            const seconds = parseInt(secInput.value) || 0;
+
+            // Clear previous error
+            errorDiv.textContent = '';
+
+            // Validate pace
+            if (minutes === 0 && seconds === 0) {
+                errorDiv.textContent = 'Please enter a valid pace';
+                return;
+            }
+
+            const totalSeconds = minutes * 60 + seconds;
+
+            if (totalSeconds < MIN_PACE_SECONDS) {
+                errorDiv.textContent = 'Pace too fast (minimum 3:00/mile)';
+                return;
+            }
+
+            if (totalSeconds > MAX_PACE_SECONDS) {
+                errorDiv.textContent = 'Pace too slow (maximum 20:00/mile)';
+                return;
+            }
+
+            // Apply to all miles
+            fillAllPaces(minutes, seconds);
+        }
+
+        /**
+         * Creates all mile input fields organized in groups
+         */
+        function createMileInputs() {
+            const container = document.getElementById('mileGroups');
+            const groups = [
+                { title: 'Miles 1-5', start: 1, end: 5 },
+                { title: 'Miles 6-10', start: 6, end: 10 },
+                { title: 'Miles 11-15', start: 11, end: 15 },
+                { title: 'Miles 16-20', start: 16, end: 20 },
+                { title: 'Miles 21-26', start: 21, end: 26 },
+                { title: 'Final Segment', start: 27, end: 27, isFinal: true }
+            ];
+
+            groups.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'mile-group' + (group.isFinal ? ' final-segment' : '');
+
+                const title = document.createElement('div');
+                title.className = 'mile-group-title';
+                title.textContent = group.title;
+                groupDiv.appendChild(title);
+
+                const inputsDiv = document.createElement('div');
+                inputsDiv.className = 'mile-inputs';
+
+                for (let i = group.start; i <= group.end; i++) {
+                    const inputContainer = createInputField(i, group.isFinal);
+                    inputsDiv.appendChild(inputContainer);
+                }
+
+                groupDiv.appendChild(inputsDiv);
+                container.appendChild(groupDiv);
+            });
+        }
+
+        /**
+         * Creates a single intuitive input field with spinners
+         */
+        function createInputField(mileNumber, isFinal) {
+            const container = document.createElement('div');
+            container.className = 'input-container';
+
+            const label = document.createElement('label');
+            label.className = 'input-label';
+            label.textContent = isFinal ? 'Final 0.2 miles' : `Mile ${mileNumber}`;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'pace-input-wrapper';
+            wrapper.id = `wrapper-${mileNumber}`;
+
+            // Minutes segment
+            const minSegment = document.createElement('div');
+            minSegment.className = 'time-segment';
+
+            const minUp = document.createElement('button');
+            minUp.className = 'spinner-button up';
+            minUp.innerHTML = '▲';
+            minUp.onclick = (e) => {
+                e.preventDefault();
+                adjustValue(mileNumber, 'minutes', 1);
+            };
+
+            const minInput = document.createElement('input');
+            minInput.type = 'number';
+            minInput.className = 'time-input';
+            minInput.id = `min-${mileNumber}`;
+            minInput.value = '';
+            minInput.placeholder = '0';
+            minInput.min = '0';
+            minInput.max = '20';
+            minInput.addEventListener('input', () => handleTimeInput(mileNumber));
+            minInput.addEventListener('keydown', (e) => handleKeyDown(e, mileNumber, 'minutes'));
+
+            const minDown = document.createElement('button');
+            minDown.className = 'spinner-button down';
+            minDown.innerHTML = '▼';
+            minDown.onclick = (e) => {
+                e.preventDefault();
+                adjustValue(mileNumber, 'minutes', -1);
+            };
+
+            const minLabel = document.createElement('div');
+            minLabel.className = 'time-label';
+            minLabel.textContent = 'min';
+
+            minSegment.appendChild(minUp);
+            minSegment.appendChild(minInput);
+            minSegment.appendChild(minDown);
+            minSegment.appendChild(minLabel);
+
+            // Separator
+            const separator = document.createElement('div');
+            separator.className = 'time-separator';
+            separator.textContent = ':';
+
+            // Seconds segment
+            const secSegment = document.createElement('div');
+            secSegment.className = 'time-segment';
+
+            const secUp = document.createElement('button');
+            secUp.className = 'spinner-button up';
+            secUp.innerHTML = '▲';
+            secUp.onclick = (e) => {
+                e.preventDefault();
+                adjustValue(mileNumber, 'seconds', 1);
+            };
+
+            const secInput = document.createElement('input');
+            secInput.type = 'number';
+            secInput.className = 'time-input';
+            secInput.id = `sec-${mileNumber}`;
+            secInput.value = '';
+            secInput.placeholder = '00';
+            secInput.min = '0';
+            secInput.max = '59';
+            secInput.addEventListener('input', () => handleTimeInput(mileNumber));
+            secInput.addEventListener('keydown', (e) => handleKeyDown(e, mileNumber, 'seconds'));
+
+            const secDown = document.createElement('button');
+            secDown.className = 'spinner-button down';
+            secDown.innerHTML = '▼';
+            secDown.onclick = (e) => {
+                e.preventDefault();
+                adjustValue(mileNumber, 'seconds', -1);
+            };
+
+            const secLabel = document.createElement('div');
+            secLabel.className = 'time-label';
+            secLabel.textContent = 'sec';
+
+            secSegment.appendChild(secUp);
+            secSegment.appendChild(secInput);
+            secSegment.appendChild(secDown);
+            secSegment.appendChild(secLabel);
+
+            wrapper.appendChild(minSegment);
+            wrapper.appendChild(separator);
+            wrapper.appendChild(secSegment);
+
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.id = `error-${mileNumber}`;
+
+            container.appendChild(label);
+            container.appendChild(wrapper);
+            container.appendChild(errorMsg);
+
+            return container;
+        }
+
+        /**
+         * Handles keyboard navigation
+         */
+        function handleKeyDown(event, mileNumber, type) {
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                adjustValue(mileNumber, type, 1);
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                adjustValue(mileNumber, type, -1);
+            }
+        }
+
+        /**
+         * Adjusts minute or second value with spinner buttons
+         */
+        function adjustValue(mileNumber, type, delta) {
+            const inputId = type === 'minutes' ? `min-${mileNumber}` : `sec-${mileNumber}`;
+            const input = document.getElementById(inputId);
+            let value = parseInt(input.value) || 0;
+            
+            value += delta;
+
+            if (type === 'minutes') {
+                value = Math.max(0, Math.min(20, value));
+            } else {
+                if (value < 0) value = 59;
+                if (value > 59) value = 0;
+            }
+
+            input.value = value;
+            validateAndCalculate(mileNumber);
+        }
+
+        /**
+         * Handles manual input in time fields
+         */
+        function handleTimeInput(mileNumber) {
+            const minInput = document.getElementById(`min-${mileNumber}`);
+            const secInput = document.getElementById(`sec-${mileNumber}`);
+
+            // Constrain values
+            if (minInput.value !== '') {
+                let mins = parseInt(minInput.value);
+                if (mins < 0) minInput.value = 0;
+                if (mins > 20) minInput.value = 20;
+            }
+
+            if (secInput.value !== '') {
+                let secs = parseInt(secInput.value);
+                if (secs < 0) secInput.value = 0;
+                if (secs > 59) secInput.value = 59;
+            }
+
+            validateAndCalculate(mileNumber);
+        }
+
+        /**
+         * Validates input and triggers calculation
+         */
+        function validateAndCalculate(mileNumber) {
+            const minInput = document.getElementById(`min-${mileNumber}`);
+            const secInput = document.getElementById(`sec-${mileNumber}`);
+            const wrapper = document.getElementById(`wrapper-${mileNumber}`);
+            const errorDiv = document.getElementById(`error-${mileNumber}`);
+
+            // Clear previous error
+            wrapper.classList.remove('invalid');
+            errorDiv.textContent = '';
+
+            const minutes = parseInt(minInput.value) || 0;
+            const seconds = parseInt(secInput.value) || 0;
+
+            // Empty is valid
+            if (minInput.value === '' && secInput.value === '') {
+                calculateTotals();
+                return;
+            }
+
+            const totalSeconds = minutes * 60 + seconds;
+
+            // Validate pace range
+            if (totalSeconds > 0 && totalSeconds < MIN_PACE_SECONDS) {
+                wrapper.classList.add('invalid');
+                errorDiv.textContent = 'Pace too fast (min 3:00/mile)';
+            } else if (totalSeconds > MAX_PACE_SECONDS) {
+                wrapper.classList.add('invalid');
+                errorDiv.textContent = 'Pace too slow (max 20:00/mile)';
+            }
+
+            calculateTotals();
+        }
+
+        /**
+         * Calculates total time and average pace
+         */
+        function calculateTotals() {
+            let totalSeconds = 0;
+
+            // Process all mile inputs (1-26)
+            for (let i = 1; i <= TOTAL_MILES; i++) {
+                const minutes = parseInt(document.getElementById(`min-${i}`).value) || 0;
+                const seconds = parseInt(document.getElementById(`sec-${i}`).value) || 0;
+                const wrapper = document.getElementById(`wrapper-${i}`);
+                
+                if (!wrapper.classList.contains('invalid')) {
+                    totalSeconds += (minutes * 60 + seconds);
+                }
+            }
+
+            // Process final 0.2 mile segment
+            const finalMin = parseInt(document.getElementById(`min-27`).value) || 0;
+            const finalSec = parseInt(document.getElementById(`sec-27`).value) || 0;
+            const finalWrapper = document.getElementById(`wrapper-27`);
+            
+            if (!finalWrapper.classList.contains('invalid')) {
+                totalSeconds += ((finalMin * 60 + finalSec) * FINAL_SEGMENT);
+            }
+
+            // Calculate average pace
+            const avgPaceSeconds = totalSeconds / TOTAL_DISTANCE;
+
+            // Update display
+            updateDisplay(totalSeconds, avgPaceSeconds);
+        }
+
+        /**
+         * Converts seconds to H:MM:SS format
+         */
+        function secondsToHMS(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+
+            return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        /**
+         * Converts seconds to MM:SS format
+         */
+        function secondsToMS(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        /**
+         * Updates the summary display with calculated values
+         */
+        function updateDisplay(totalSeconds, avgPaceSeconds) {
+            const totalTimeEl = document.getElementById('totalTime');
+            const avgPaceEl = document.getElementById('avgPace');
+
+            const newTotalTime = secondsToHMS(totalSeconds);
+            const newAvgPace = secondsToMS(avgPaceSeconds);
+
+            // Add animation class if value changed
+            if (totalTimeEl.textContent !== newTotalTime) {
+                totalTimeEl.classList.add('updated');
+                setTimeout(() => totalTimeEl.classList.remove('updated'), 300);
+            }
+
+            if (avgPaceEl.textContent !== newAvgPace) {
+                avgPaceEl.classList.add('updated');
+                setTimeout(() => avgPaceEl.classList.remove('updated'), 300);
+            }
+
+            totalTimeEl.textContent = newTotalTime;
+            avgPaceEl.textContent = newAvgPace;
+        }
+
+        /**
+         * Fills all pace inputs with the same value
+         */
+        function fillAllPaces(minutes, seconds) {
+            for (let i = 1; i <= 27; i++) {
+                document.getElementById(`min-${i}`).value = minutes;
+                document.getElementById(`sec-${i}`).value = seconds;
+                validateAndCalculate(i);
+            }
+        }
+
+        /**
+         * Clears all input fields and resets calculations
+         */
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all pace entries?')) {
+                for (let i = 1; i <= 27; i++) {
+                    document.getElementById(`min-${i}`).value = '';
+                    document.getElementById(`sec-${i}`).value = '';
+                    document.getElementById(`wrapper-${i}`).classList.remove('invalid');
+                    document.getElementById(`error-${i}`).textContent = '';
+                }
+                calculateTotals();
+            }
+        }
+    </script>
+</body>
+</html>
